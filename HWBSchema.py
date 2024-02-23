@@ -21,9 +21,10 @@ TABLES['user'] = (
     "  `password` varchar(20) NOT NULL,"
     "  `first_name` varchar(20) NOT NULL,"
     "  `last_name` varchar(50) NOT NULL,"
+    "  `address` varchar(50),"
     "  `birth_date` date NOT NULL,"
     "  `email` varchar(50) NOT NULL,"
-    "  `phone` varchar(11) NOT NULL,"
+    "  `phone` varchar(14) NOT NULL,"
     "  `creation_date` timestamp DEFAULT CURRENT_TIMESTAMP,"
     "  PRIMARY KEY (`client_no`), UNIQUE KEY `email` (`email`), UNIQUE KEY `user_name` (`user_name`)"
     ") ENGINE=InnoDB")
@@ -87,6 +88,7 @@ try:
         print('Created database: {}'.format(DB_NAME))
 except mysql.connector.Error as err:
         print("Failed creating database: {}".format(err))
+connection.commit()
 print("-------------------------------------")
 
 ## Create tables
@@ -105,10 +107,14 @@ for table_name in TABLES:
             print(err.msg)
     else:
         print("OK")
+connection.commit()
 print("\n-------------------------------------")
 
 ## Creating table entries
 today = datetime.now().date()
+add_full_user = ("INSERT INTO user "
+               "(user_name, password, first_name, last_name, address, birth_date, email, phone, creation_date) "
+               "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %(today)s)")
 add_user = ("INSERT INTO user "
                "(user_name, password, first_name, last_name, birth_date, email, phone, creation_date) "
                "VALUES (%s, %s, %s, %s, %s, %s, %s, %s)")
@@ -116,8 +122,12 @@ admin_user = ('Admin_User', '1234abcd1234', 'Tina', 'Snow', date(1995, 2, 15), '
 test_user_1 = ('TestUserOne', '1234abcd1235', 'TestOne', 'UserOne', date(1985, 5, 8), 'test_user1@abc.com', 14169671111, today)
 test_user_2 = ('TestUserTwo', '1234abcd1236', 'TestTwo', 'UserTwo', date(2001, 11, 28), 'test_user2@abc.com', 14169672222, today)
 cursor.execute(add_user, admin_user)
+connection.commit()
 cursor.execute(add_user, test_user_1)
+connection.commit()
 cursor.execute(add_user, test_user_2)
+connection.commit()
+
 
 add_room = ("INSERT INTO room "
                "(location, floor_no, room_no, split_room, bed_no, balconey, tub_style, minibar) "
@@ -133,15 +143,26 @@ room302 = ('Toronto', 3, 302, 'N', 2, 'N', 'Spa Bathtub', 'Y')
 room303 = ('Toronto', 3, 303, 'Y', 4, 'Y', 'Jacuzzi Tub', 'Y')
 penthouse = ('Toronto', 1, 401, 'Y', 6, 'Y', 'Jacuzzi Tub', 'Y')
 cursor.execute(add_room, room101)
+connection.commit()
 cursor.execute(add_room, room102)
+connection.commit()
 cursor.execute(add_room, room103)
+connection.commit()
 cursor.execute(add_room, room201)
+connection.commit()
 cursor.execute(add_room, room202)
+connection.commit()
 cursor.execute(add_room, room203)
+connection.commit()
 cursor.execute(add_room, room301)
+connection.commit()
 cursor.execute(add_room, room302)
+connection.commit()
 cursor.execute(add_room, room303)
+connection.commit()
 cursor.execute(add_room, penthouse)
+connection.commit()
+
 
 # checkin1 = datetime.date(2024, 3, 15)
 # checkout1 = datetime.date(2024, 3, 21)
@@ -182,6 +203,7 @@ booking1 = {
 # booking1 = ('1234abcd1235', 'TestOne', 'UserOne', 101, ck1, co1)
 # booking2 = ('1234abcd1236', 'TestTwo', 'UserTwo', 303, ck2, co2)
 cursor.execute(add_booking, booking1)
+connection.commit()
 #cursor.execute(add_booking, booking2)
 
 
@@ -195,6 +217,7 @@ databaseList = cursor.fetchall()       # Fetch all objects [databases] in cursor
 print("Listing all databases in server ...")
 for database in databaseList:          # For every database in database list variable   
     print("- {}".format(database))                    # Print to Console each one
+connection.commit()
 print("\n-------------------------------------")
    
 ## Show all tables in HWB Hotels DB
@@ -203,6 +226,7 @@ tableList = cursor.fetchall()
 print("Listing all the tables in {} database ...".format(DB_NAME))
 for table in tableList:
     print("- {}".format(table))                    # Print to Console each one
+connection.commit()
 print("\n-------------------------------------")
     
 ## Show entries in user table
@@ -211,6 +235,7 @@ cursor.execute("SELECT client_no, first_name, last_name FROM HWBHotels.user")
 clientno = cursor.fetchall()
 for client in clientno:
     print("- {}".format(client))
+connection.commit()
 print("\n-------------------------------------")
 
 ## Show entries in room table
@@ -219,6 +244,7 @@ cursor.execute("SELECT floor_no, room_no, bed_no FROM HWBHotels.room")
 roomList = cursor.fetchall()
 for room in roomList:
     print("- {}".format(room))
+connection.commit()
 print("\n-------------------------------------")
 
 ## Show entries in booking table
@@ -227,6 +253,7 @@ cursor.execute("SELECT booking_no, client_no, room_no, check_in, check_out FROM 
 bookingList = cursor.fetchall()
 for booking in bookingList:
     print("- {}".format(booking))
+connection.commit()
 print("\n-------------------------------------")
 
 ## Closing message
