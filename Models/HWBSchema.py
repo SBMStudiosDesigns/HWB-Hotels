@@ -5,8 +5,19 @@ import mysql.connector
 from mysql.connector import errorcode
 	
 
-# Schema Variables ----------------------------------------------------------------------------------------------------------------------------
-## Database name
+ 
+# ---- Create a connection object ------------------------------------------------------------------------------------------------------------------
+Host = "localhost"                     # IP address of the MySQL database server 
+User = "root"                          # User name of the database server 
+Password = "microsoftSurface"          # Password for the database user 
+connection = pymysql.connect(host=Host, user=User, password=Password) 
+
+# Create a cursor object 
+cursor = connection.cursor() 
+
+
+
+# ---- Create HWB Hotels Schema --------------------------------------------------------------------------------------------------------------------
 DB_NAME = 'HWBHotels'
 
 ## Tables 
@@ -62,19 +73,6 @@ TABLES['booking'] = (
     ") ENGINE=InnoDB")
 
 
-    
-# Create a connection object ------------------------------------------------------------------------------------------------------------------
-Host = "localhost"                     # IP address of the MySQL database server 
-User = "root"                          # User name of the database server 
-Password = "microsoftSurface"          # Password for the database user 
-connection = pymysql.connect(host=Host, user=User, password=Password) 
-
-# Create a cursor object 
-cursor = connection.cursor() 
-
-
-
-# Create HWB Hotels Schema --------------------------------------------------------------------------------------------------------------------
 ## Create database
 cursor.execute("DROP DATABASE {}".format(DB_NAME))
 print("*------------------------------------*")
@@ -109,7 +107,9 @@ for table_name in TABLES:
 connection.commit()
 print("\n-------------------------------------")
 
-## Creating table entries
+
+
+## ---- Creating table entries -----------------------------------------------------------------------------------------------------------------
 today = datetime.now().date()
 add_full_user = ("INSERT INTO user "
                "(user_name, password, first_name, last_name, address, birth_date, email, phone, creation_date) "
@@ -166,33 +166,10 @@ cursor.execute(add_room, penthouse)
 connection.commit()
 
 
-# checkin1 = datetime.date(2024, 3, 15)
-# checkout1 = datetime.date(2024, 3, 21)
-# checkin2 = datetime.date(2024, 6, 11)
-# checkout2 = datetime.date(2024, 6, 21)
 add_booking = ("INSERT INTO booking "
                "(client_no, user_name, client_fname, client_lname, room_no, check_in, check_out) "
                "VALUES (%(client_no)s, %(user_name)s, %(client_fname)s, %(client_lname)s, %(room_no)s, %(check_in)s, %(check_out)s)")
-# checkin1 = '2024-03-15'
-# checkout1 = '2024-03-21'
-# checkin2 = '2024-06-11'
-# checkout2 = '2024-06-21'
-# checkin1 = pandas.to_datetime('2024/3/15', 'yyyy/mm/dd')
-# checkout1 = to_datetime('2024/3/21', 'yyyy/mm/dd')
-# checkin2 = to_datetime('2024/5611', 'yyyy/mm/dd')
-# checkout2 = to_datetime('2024/6/21', 'yyyy/mm/dd')
-checkin1 = date(2024, 3, 15)
-checkout1 = date(2024, 3, 21)
-checkin2 = date(2024, 6, 11)
-checkout2 = date(2024, 6, 21)
-# ck1 = checkin1.strftime('%Y-%m-%d %H:%M:%S')
-# co1 = checkout1.strftime('%Y-%m-%d %H:%M:%S')
-# ck2 = checkin2.strftime('%Y-%m-%d %H:%M:%S')
-# co2 = checkout2.strftime('%Y-%m-%d %H:%M:%S')
-#booking1 = ('1234abcd1235', 'TestOne', 'UserOne', 101, date(2024, 3, 15), date(2024, 3, 21))
-#booking2 = ('1234abcd1236', 'TestTwo', 'UserTwo', 303, date(2024, 6, 11), date(2024, 6, 21))
-# booking1 = ('1234abcd1235', 'TestOne', 'UserOne', 101, '2024-03-15', '2024-03-15')
-# booking2 = ('1234abcd1236', 'TestTwo', 'UserTwo', 303, checkin2, checkout2)
+
 booking1 = {
     'client_no': 1,
     'user_name': 'Admin_User',
@@ -217,20 +194,14 @@ booking3 = {
     'room_no':401, 
     'check_in':'2024-03-22', 
     'check_out':'2024-03-25'}
-#booking2 = ('1234abcd1236', 'TestTwo', 'UserTwo', 303, checkin2, checkout2)
-# booking1 = ('1234abcd1235', 'TestOne', 'UserOne', 101, ck1, co1)
-# booking2 = ('1234abcd1236', 'TestTwo', 'UserTwo', 303, ck2, co2)
 cursor.execute(add_booking, booking1)
 cursor.execute(add_booking, booking2)
 cursor.execute(add_booking, booking3)
 connection.commit()
-#cursor.execute(add_booking, booking2)
 
 
 
-
-
-# Show entries in server -----------------------------------------------------------------------------------------------------------------
+# ---- Show entries in server -----------------------------------------------------------------------------------------------------------------
 ## Show all databases
 cursor.execute("SHOW DATABASES")       # SQL command      
 databaseList = cursor.fetchall()       # Fetch all objects [databases] in cursor
@@ -281,88 +252,7 @@ print("HWB Hotels database has officially been set-up & populated with \nsample 
 print("-------------------------------------\n")
 
 
-## Test Code Here
-print('Test code here \n')
-### Variables
-user_varify = 'TestUserOne'
-pas_varify = '1234abcd1235'
 
-print("Test 1: Select a row")
-sql = "select first_name, last_name, address, birth_date, email, phone from user where user_name = %s and password = %s"
-cursor.execute(sql,[(user_varify),(pas_varify)])
-results = cursor.fetchall()
-
-user_info_list = list(map(list, results)) ## Convert list of tuples
-user_info = user_info_list[0] ## Assign list to variable
-fname = user_info[0] ## First name variable
-
-print('{} \n'.format(user_info))
-
-print("Test 2: Get user's first name")
-print('{} \n'.format(fname))
-
-### Test 3: Get available rooms between 2024-3-1 to 2024-3-16
-
-
-
-# sql = """
-#     SELECT 
-#     r.floor_no, r.room_no, r.split_room, r.bed_no, r.balconey, r.tub_style, r.minibar, 
-#     b.check_in, b.check_out 
-#     FROM hwbhotels.room r 
-#     LEFT JOIN hwbhotels.booking b 
-#     ON r.room_no = b.room_no 
-#     AND b.check_in NOT BETWEEN CAST('2024-3-1' AS DATE) and CAST('2024-3-16' AS DATE) 
-#     AND b.check_out NOT BETWEEN CAST('2024-3-1' AS DATE) and CAST('2024-3-16' AS DATE)"""
-print("Test 3: Modify booking table \n- modify client to accept NULL\n- drop foreign keys client_no & email")
-try:
-    with connection.cursor() as cur:
-        sql = (
-            "ALTER TABLE `booking` "
-            "MODIFY `client_no` int NULL,"
-            "DROP FOREIGN KEY `booking_ibfk_1`,"
-            "DROP FOREIGN KEY `booking_ibfk_3`"
-            )
-        cur.execute(sql)
-        print("**Booking table has been modified***\n")
-        connection.commit()
-except mysql.connector.Error as err:
-    print("Failed to modify Booking table\n")
-
-print("Test 4: Get available rooms between 2024-3-1 to 2024-3-16")
-date1 = datetime(2024, 3, 1)
-date2 = datetime(2024, 3, 16)
-# checkin = date1.strftime('%Y-%m-%d')
-# checkout = date2.strftime('%Y-%m-%d')
-checkin = date1.date().isoformat()
-checkout = date2.date().isoformat()
-print(checkin)
-formatstring = "- AVAILABLE: Floor #: {0} | Room #: {1} | Split Room: {2} | Bed Amount: {3} | Balconey: {4} | Tub Style: {5} | Minibar: {6}\n"
-sql = """
-    SELECT 
-    r.floor_no, r.room_no, r.split_room, r.bed_no, r.balconey, r.tub_style, r.minibar,
-    b.check_in, b.check_out 
-    FROM hwbhotels.room r
-	LEFT JOIN hwbhotels.booking b
-	ON r.room_no = b.room_no
-	WHERE b.check_in NOT BETWEEN CONVERT(%s , DATE) and CONVERT(%s , DATE)
-	AND b.check_out NOT BETWEEN CONVERT(%s , DATE) and CONVERT(%s , DATE)
-    OR b.check_in IS NULL AND b.check_out IS NULL    
-    """
-
-# cursor.execute(sql, [checkin, checkout, checkin, checkout])
-cursor.execute(sql, [checkin, checkout, checkin, checkout])
-availability = cursor.fetchall()
-available_options = []
-for available in availability:
-    # print("- {}".format(available))
-    option = formatstring.format(*available)
-    available_options.append(option)
-    print(option)
-print(f'Available Options\n {available_options}\n')
-
-print("Okay now I'm done now fr, fr :P\n*------------------------------------*\n")
-
-## Close connection
+## ---- Close connection -----------------------------------------------------------------------------------------------------------------
 cursor.close()
 connection.close()                     
