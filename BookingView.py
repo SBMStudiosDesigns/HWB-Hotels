@@ -5,28 +5,138 @@ import customtkinter as ctk
 import tkinter as tk
 from tkinter import Label, Button, StringVar, Toplevel, messagebox, Menu
 from tkcalendar import DateEntry
+from datetime import date, datetime
 
 
 
 #-- MODELS -- Database Connection --------------------------------------------------------------------------------------------------------------
-connection = mysql.connector.connect(host="localhost",user="root",passwd="microsoftSurface",database="HWBHotels")
+connection = mysql.connector.connect(host="localhost",user="root",passwd="microsoftSurface",database="hwbhotels")
 cursor = connection.cursor()
 
 
 #-- CONTROLLERS -- Global variables --------------------------------------------------------------------------------------------------------------
-global username_var, password_var, fname_var, lname_var, email_var, phone_var, address_var, birthday_var
+global fname_output, username_var, password_var, fname_var, lname_var, email_var, phone_var, address_var, birthday_var, client_no, room_no_var, floor_no_var, balconey_var, tub_var, minibar_var, check_in_var, check_out_var
+username_var = ''
+fname_var = ''
 userName = '%s!'%(getpass.getuser().capitalize())
 main_bgc = "#8AA7A9"
+
 add_new_user = ("INSERT INTO user "
                "(user_name, password, first_name, last_name, address, birth_date, email, phone) "
                "VALUES (%s, %s, %s, %s, %s, %s, %s, %s)")
-
-title_font = ctk.CTkFont(family="Times", size=30)
-heading_font = ctk.CTkFont(family="Times", size=20)
-body_font = ctk.CTkFont(family="Times", size=15)
+# add_new_booking = ("INSERT INTO booking "
+#                "(user_name, client_fname, client_lname, room_no, minibar, check_in, check_out) "
+#                "VALUES %(user_name)s, %(client_fname)s, %(client_lname)s, %(room_no)s, %(minibar)s, %(check_in)s, %(check_out)s)")
+add_new_booking = ("INSERT INTO booking "
+               "(user_name, client_fname, client_lname, room_no, minibar, check_in, check_out) "
+               "VALUES %s, %s, %s, %s, %s, %s, %s)")
 
 
 #-- CONTROLLERS -- App's functions --------------------------------------------------------------------------------------------------------------
+
+## CLASS: Logged in user
+class LoggedInUser():
+        username = ''
+        fname = ''
+
+        def return_username(fname):
+            text = "Welcome back {}!".format(fname)
+            return text , fname
+        
+        # def __str__(fname):
+        #     return f'Welcome back {fname}!'
+        
+        def welcome(fname):
+            # global username_var, password_var
+            user_varify = username_var
+            pas_varify = password_var
+
+            sql = "select first_name from user where user_name = %s and password = %s"
+
+            cursor.execute(sql,[(user_varify),(pas_varify)])
+            results = cursor.fetchall()
+
+            if results:
+                for i in results:
+                    fname_list = list(map(list, results))
+                    fname_info = fname_list[0]
+
+                    fname = fname_info[0]
+
+                    setattr(LoggedInUser, 'fname', fname)
+
+                    print(f"Welcome back {fname}!")
+                return f"Welcome back {fname}!"
+            else:
+                print("Welcome!")
+                return "Welcome back user!"
+
+
+# def test_btn_func():
+#             print('chicken')
+#             print(LoggedInUser.username)
+#             print(fname_var)
+
+def welcome_msg(fname):
+    global text
+    text = "Welcome back {}!".format(fname)
+
+    print(text)
+
+    # return "Welcome back {}!".format(fname)
+    return text
+
+def welcomeuserhp():
+    global fname_var
+    user_varify = username_var.get()
+    pas_varify = password_var.get()
+
+    sql = "select first_name from user where user_name = %s and password = %s"
+
+    cursor.execute(sql,[(user_varify),(pas_varify)])
+    results = cursor.fetchall()
+
+    if results:
+        for i in results:
+
+            user_info_list = list(map(list, results)) ## Convert list of tuples into a list
+            user_info = user_info_list[0] ## Assign list to variable
+
+            fname_var = user_info[0]
+            msg = "Welcome back {}!".format(fname_var)
+
+            print(fname_var)
+            print(msg)
+            return "Welcome back {}!".format(fname_var)
+
+def return_username(username,fname):
+    global username_var
+    username_var = LoggedInUser.username
+
+    global fname_var
+    fname_var = LoggedInUser.fname
+
+    if username_var != '':
+        print('Name is: {}'.format(fname_var))
+        print('Username is: {}'.format(username_var))
+    # elif username_var == '':   
+    #     print('No user logged in yet.')
+
+    else:
+        print('No user logged in yet...')
+        print("-------------------------------------")
+        
+    return username_var, fname_var
+
+def letstryagain_fname(fname):
+    global fname_var
+    fname_var = fname
+    user_in = LoggedInUser() 
+    user_in.fname = fname_var
+    print(user_in)
+
+    return user_in
+
 ## FUNCTION: About msgbox on menubar
 def about():
     messagebox.showinfo('About', "This is a sample Booking Application made by Tahnee Pitter-Duncan. \n\nThis app is made using Python and Tkinter. The Tkinter package is used to build a simple GUI.")
@@ -53,7 +163,7 @@ def logged():
     logg.title("Welcome")
     logg.geometry("200x100")
 
-    Label(logg, text="Welcome {} ".format(username_var.get()), fg="green", font="bold").pack()
+    Label(logg, text="Welcome {} ".format(username_var), fg="green", font="bold").pack()
     Label(logg, text="").pack()
     Button(logg, text="Enter App", bg="grey", width=8, height=1, command=logg_destroy).pack()
 
@@ -71,19 +181,97 @@ def failed():
 
 ## FUNCTION: Login Verification
 def login_varify():
+    global username_var, password_var,fname_var, lname_var, address_var, birthday_var, email_var, phone_var
+
     user_varify = username_var.get()
     pas_varify = password_var.get()
 
     sql = "select * from user where user_name = %s and password = %s"
+
     cursor.execute(sql,[(user_varify),(pas_varify)])
     results = cursor.fetchall()
 
     if results:
         for i in results:
+            username_var = user_varify
+
+            sql = "select first_name, last_name, address, birth_date, email, phone from user where user_name = %s and password = %s"
+            cursor.execute(sql,[(user_varify),(pas_varify)])
+            results = cursor.fetchall()
+
+            user_info_list = list(map(list, results)) ## Convert list of tuples into a list
+            user_info = user_info_list[0] ## Assign list to variable
+
+            fname_var = user_info[0]
+            lname_var = user_info[1]
+            address_var = user_info[2]
+            birthday_var = user_info[3]
+            email_var = user_info[4]
+            phone_var = user_info[5]
+            setattr(LoggedInUser, 'username', username_var)
+            setattr(LoggedInUser, 'fname', fname_var)
+            setattr(LoggedInUser, 'lname', lname_var)
+
+            print("-------------------------------------\n")
+            print("Logged In User's Information:\n")
+            
+            print('Username: {}'.format(username_var))
+            print('First Name: {}'.format(fname_var))
+            print('Last Name: {}'.format(lname_var))
+            print('Address: {}'.format(address_var))
+            print('Birthday: {}'.format(birthday_var))
+            print('Email: {}'.format(email_var))
+            print('Phone Number: {}\n'.format(phone_var))
+            # print('Class LoggedInUser username attribute: '.format(LoggedInUser.username)) ## Does not work
+            
+            print(LoggedInUser.username)
+            return_username(LoggedInUser.username, LoggedInUser.fname)
+            print('\n')
+
+            # welcome_msg(LoggedInUser.fname)
+            print(f"Welcome back {fname_var}")
+            # letstryagain_fname(username_var)
+            print("*------------------------------------*\n")
+
+            # global fname_output
+            # fname_output = LoggedInUser.fname
+
             logged()
-            break
+            fname_var = welcome_msg
+        return username_var, fname_var, lname_var, address_var, birthday_var, email_var, phone_var, LoggedInUser.fname
+            
     else:
         failed()
+
+# def btnclicked():
+#     # print("New booking entered into database")
+#     # global fname_var, lname_var, phone_var, email_var, check_in_var, check_out_var, floor_no_var, balconey_var, tub_var, minibar_var
+
+#     check_in = check_in_var.get()
+#     check_out = check_out_var.get()
+
+#     formatstring = "- AVAILABLE: Floor #: {0} | Room #: {1} | Split Room: {2} |\nBed Amount: {3} | Balconey: {4} | Tub Style: {5} | Minibar: {6}\n"
+#     sql = """
+#         SELECT 
+#         r.floor_no, r.room_no, r.split_room, r.bed_no, r.balconey, r.tub_style, r.minibar, 
+#         b.check_in, b.check_out 
+#         FROM hwbhotels.room r 
+#         LEFT JOIN hwbhotels.booking b 
+#         ON r.room_no = b.room_no 
+#         AND b.check_in NOT BETWEEN CAST(%s AS DATE) and CAST(%s AS DATE) 
+#         AND b.check_out NOT BETWEEN CAST(%s AS DATE) and CAST(%s AS DATE)"""
+    
+#     cursor.execute(sql, [(check_in), (check_out), (check_in), (check_out)])
+#     availability = cursor.fetchall()
+
+#     available_options = []
+#     for available in availability:
+#         # print("- {}".format(available))
+#         option = formatstring.format(*available)
+#         available_options.append(option)
+#         print(option)
+#     print(f'Available Options\n {available_options}')
+            
 
 ## FUNCTION: Close frame on btn click
 def succ_destroy():
@@ -139,6 +327,19 @@ def success():
     Label(succ, text="").pack()
     Button(succ, text="Ok", bg="grey", width=8, height=1, command=succ_destroy).pack()
 
+## FUNCTION FRAME: Successful Booking -> succ_destroy
+def successful_booking_entry():
+    global succ
+
+    succ = Toplevel()
+    succ.title("Success")
+    succ.geometry("200x100")
+
+    Label(succ, text="Booking successful...", fg="green", font="bold").pack()
+    Label(succ, text="").pack()
+    Button(succ, text="Ok", bg="grey", width=8, height=1, command=succ_destroy).pack()
+
+
 ## FUNCTION FRAME: Registration Error -> error_destroy
 def error():
     global err
@@ -151,6 +352,49 @@ def error():
     Label(err,text="").pack()
     Button(err,text="Ok",bg="grey",width=8,height=1,command=error_destroy).pack()
 
+## FUNCTION: New booking entry
+def new_booking():
+    username = username_var
+    fname = fname_var
+    lname = lname_var
+    room_no = room_no_var
+    minibar = minibar_var
+    uin = check_in_var.get_date()
+    uout = check_out_var.get_date()
+
+    checkin = uin.strftime("%Y-%m-%d")
+    checkout = uout.strftime("%Y-%m-%d")
+
+    if username == "":
+        error()
+    elif fname == "":
+        error()
+    elif lname == "":
+        error()
+    elif room_no == "":
+        error()
+    elif minibar == "":
+        error()
+    elif checkin == "":
+        error()
+    elif checkout == "":
+        error()
+    else:
+        username = username_var.get()
+        fname = fname_var.get()
+        lname = lname_var.get()
+        room_no = room_no_var.get()
+        minibar = minibar_var.get()
+        booking = (username_var, fname, lname, room_no, minibar, checkin, checkout)
+        cursor.execute(add_new_booking, booking)
+        connection.commit()
+
+        time.sleep(0.50)
+
+        successful_booking_entry()
+    
+## FUNCTION: Booking history
+## FUNCTION: Print booking history
 
 
 #-- VIEW -- Main FRAME / CONTAINER --------------------------------------------------------------------------------------------------------------
@@ -220,6 +464,10 @@ class HomePage(ctk.CTkFrame):
         bottom_frame = ctk.CTkFrame(self)
         bottom_frame.grid(row=1, column=0, padx=0, pady=0)
 
+        title_font = ctk.CTkFont(family="Times", size=30)
+        heading_font = ctk.CTkFont(family="Times", size=20)
+        body_font = ctk.CTkFont(family="Times", size=15)
+
        
         ## Frame Elements
         hp_label = ctk.CTkLabel(top_frame, text="Home Page", font=title_font)
@@ -286,22 +534,24 @@ class LogIn(ctk.CTkFrame):
         bottom_frame = ctk.CTkFrame(self)
         bottom_frame.grid(row=1, column=0, padx=0, pady=0)
 
+        title_font = ctk.CTkFont(family="Times", size=30)
+        heading_font = ctk.CTkFont(family="Times", size=20)
+        body_font = ctk.CTkFont(family="Times", size=15)
+
 
         ## Frame Elements
         label = ctk.CTkLabel(top_frame,text='Login Page', font=title_font)  
         label.grid(row=0, column=0, padx=5, pady=10)
 
         global username_var 
-        username_entry_var = StringVar()
-        user_entry = ctk.CTkEntry(top_frame,placeholder_text="Username", textvariable=username_entry_var) 
+        user_entry = ctk.CTkEntry(top_frame,placeholder_text="Username") 
         user_entry.grid(row=1, column=0, padx=5, pady=5)
-        username_var = username_entry_var 
+        username_var = user_entry
 
         global password_var
-        user_pass_var = StringVar()
-        user_pass= ctk.CTkEntry(top_frame,placeholder_text="Password", textvariable=user_pass_var,show="*")  
+        user_pass= ctk.CTkEntry(top_frame,placeholder_text="Password",show="*")  
         user_pass.grid(row=2, column=0, padx=5, pady=5)
-        password_var = user_pass_var
+        password_var = user_pass
 
         button = ctk.CTkButton(top_frame,text='Login',command=login_varify)  
         button.grid(row=3, column=0, padx=5, pady=5)
@@ -322,7 +572,7 @@ class LogIn(ctk.CTkFrame):
         filemenu = Menu(menubar, tearoff=0, relief='raised', activebackground="#026AA9")
         menubar.add_cascade(label="Options", menu=filemenu)
         filemenu.add_command(label="Sign-Up", command=lambda: parent.show_frame(parent.SignUp))
-        filemenu.add_command(label="Log-In", command=lambda: parent.show_frame(parent.LogIn))
+        # filemenu.add_command(label="Log-In", command=lambda: parent.show_frame(parent.LogIn))
         filemenu.add_separator()
         filemenu.add_command(label="Exit", command=parent.quit)  
 
@@ -356,74 +606,70 @@ class SignUp(ctk.CTkFrame):
         bottom_frame = ctk.CTkFrame(self)
         bottom_frame.grid(row=1, column=0, padx=0, pady=0)
 
+        title_font = ctk.CTkFont(family="Times", size=30)
+        heading_font = ctk.CTkFont(family="Times", size=20)
+        body_font = ctk.CTkFont(family="Times", size=15)
+
 
         ## Frame Elements
         label = ctk.CTkLabel(top_frame,text='Sign-Up Page', font=title_font)  
         label.grid(row=0, column=0, columnspan=3, padx=5, pady=10)
 
         global username_var
-        username_entry_var = StringVar()
         l1 = ctk.CTkLabel(top_frame,text='Username', font=body_font)  
         l1.grid(row=1, column=0)
-        user_entry = ctk.CTkEntry(top_frame,placeholder_text="Username", textvariable=username_entry_var) 
+        user_entry = ctk.CTkEntry(top_frame,placeholder_text="Username") 
         user_entry.grid(row=2, column=0)
-        username_var = username_entry_var
+        username_var = user_entry
 
         global password_var
-        user_pass_var  = StringVar()
         l2 = ctk.CTkLabel(top_frame,text='Password', font=body_font)  
         l2.grid(row=1, column=1)
-        user_pass= ctk.CTkEntry(top_frame,placeholder_text="Password", textvariable=user_pass_var,show="*")  
+        user_pass= ctk.CTkEntry(top_frame,placeholder_text="Password",show="*")  
         user_pass.grid(row=2, column=1)
-        password_var = user_pass_var
+        password_var = user_pass
         
         global fname_var
-        fname_entry_var = StringVar()
         l3 = ctk.CTkLabel(top_frame,text='First Name', font=body_font)  
         l3.grid(row=3, column=0)
-        fname_entry = ctk.CTkEntry(top_frame,placeholder_text="First Name", textvariable=fname_entry_var) 
+        fname_entry = ctk.CTkEntry(top_frame,placeholder_text="First Name") 
         fname_entry.grid(row=4, column=0)
-        fname_var = fname_entry_var
+        fname_var = fname_entry
 
         global lname_var
-        lname_entry_var = StringVar()
         l4 = ctk.CTkLabel(top_frame,text='Last Name', font=body_font)  
         l4.grid(row=3, column=1)
-        lname_entry= ctk.CTkEntry(top_frame,placeholder_text="Last Name", textvariable=lname_entry_var)  
+        lname_entry= ctk.CTkEntry(top_frame,placeholder_text="Last Name")  
         lname_entry.grid(row=4, column=1)
-        lname_var = lname_entry_var
+        lname_var = lname_entry
         
         global email_var
-        email_entry_var = StringVar()
         l5 = ctk.CTkLabel(top_frame,text='Email', font=body_font)  
         l5.grid(row=5, column=0)
-        email_entry = ctk.CTkEntry(top_frame,placeholder_text="Email", textvariable=email_entry_var) 
+        email_entry = ctk.CTkEntry(top_frame,placeholder_text="Email") 
         email_entry.grid(row=6, column=0)
-        email_var = email_entry_var
+        email_var = email_entry
 
         global phone_var
-        phone_entry_var = StringVar()
         l6 = ctk.CTkLabel(top_frame,text='Phone Number', font=body_font)  
         l6.grid(row=5, column=1)
-        phone_entry= ctk.CTkEntry(top_frame,placeholder_text="1-XXX-XXX-XXXX", textvariable=phone_entry_var)  
+        phone_entry= ctk.CTkEntry(top_frame,placeholder_text="1-XXX-XXX-XXXX")  
         phone_entry.grid(row=6, column=1)
-        phone_var = phone_entry_var
+        phone_var = phone_entry
 
         global address_var
-        address_entry_var = StringVar()
         l7 = ctk.CTkLabel(top_frame,text='Address', font=body_font)  
         l7.grid(row=7, column=0)
-        address_entry = ctk.CTkEntry(top_frame,placeholder_text="Address", textvariable=address_entry_var) 
+        address_entry = ctk.CTkEntry(top_frame,placeholder_text="Address") 
         address_entry.grid(row=7, column=1, columnspan=2)
-        address_var = address_entry_var
+        address_var = address_entry
 
         global birthday_var
         birthday_label = ctk.CTkLabel(top_frame, text='Birthday')
         birthday_label.grid(row=8,column=0, sticky='e')
-        birthday_entry_var = StringVar()
-        birthday_cal = DateEntry(top_frame, selectmode='day', date_pattern='yyyy/mm/dd', width=25, font=body_font, textvariable=birthday_entry_var)
+        birthday_cal = DateEntry(top_frame, selectmode='day', date_pattern='yyyy/mm/dd', width=25, font=body_font)
         birthday_cal.grid(row=8,column=1, columnspan=3)
-        birthday_var = birthday_entry_var
+        birthday_var = birthday_cal
 
         button = ctk.CTkButton(top_frame,text='Sign-Up',command=register_user)  
         button.grid(row=9, column=0, columnspan=4, padx=5, pady=5)
@@ -474,20 +720,20 @@ class LoggedIn_HP(ctk.CTkFrame):
         bottom_frame = ctk.CTkFrame(self)
         bottom_frame.grid(row=1, column=0, padx=0, pady=0)
 
+        title_font = ctk.CTkFont(family="Times", size=30)
+        heading_font = ctk.CTkFont(family="Times", size=20)
+        body_font = ctk.CTkFont(family="Times", size=15)
+
 
         ## Frame Elements
-        hp_label = ctk.CTkLabel(top_frame, text="Home Page", font=title_font)
+        hp_label = ctk.CTkLabel(top_frame, text="Welcome Back!", font=title_font)
         hp_label.grid(row=0, column=0, pady=10,padx=0)
 
-        welcome_message = "Welcome to HWB Hotels Booking App " + userName + '!'
-        self.welcome_label = ctk.CTkLabel(top_frame,text=welcome_message,font=heading_font)
-        self.welcome_label.grid(row=1, column=0, pady=0,padx=0)
-
-        hp_blurb = "Experience the essence of luxury in the heart of Toronto at our boutique hotel.\nSecure your urban sanctuary today and immerse yourself in the vibrant energy\nof the city. Located in the bustling metropolis of Toronto, our boutique gem\npromises an unforgettable stay."
+        hp_blurb = "Secure your stay in the bustling metropolis of Toronto at our boutique today."
         self.hp_blurb_label = ctk.CTkLabel(top_frame,text=hp_blurb, font=body_font)
-        self.hp_blurb_label.grid(row=2, column=0, pady=0,padx=0)
+        self.hp_blurb_label.grid(row=1, column=0, pady=0,padx=0)
 
-        hp_button_label_msg = "Elevate your travel experience – reserve your spot today!"
+        hp_button_label_msg = f"We're here to elevate your travel experience – reserve your spot today!"
         self.hp_button_label = ctk.CTkLabel(bottom_frame,text=hp_button_label_msg,font=heading_font)
         self.hp_button_label.grid(row=0, columnspan=3, sticky='news', pady=5,padx=0)
 
@@ -499,6 +745,11 @@ class LoggedIn_HP(ctk.CTkFrame):
 
         login_btn = ctk.CTkButton(bottom_frame, text="Log Out", command=lambda: parent.show_frame(parent.LogIn))
         login_btn.grid(row=1, column=2,padx=20, pady=10)
+
+        # test_btn = ctk.CTkButton(bottom_frame, text="Test Button", command=test_btn_func)
+        # test_btn.grid(row=2, column=0, columnspan=3 ,padx=20, pady=10)
+
+        
 
 
     ## Menubar
@@ -547,6 +798,11 @@ class NewBooking(ctk.CTkFrame):
         scroll_frame = ctk.CTkFrame(self)
         scroll_frame.grid(row=1, column=0)
 
+        title_font = ctk.CTkFont(family="Times", size=30)
+        heading_font = ctk.CTkFont(family="Times", size=20)
+        body_font = ctk.CTkFont(family="Times", size=15)
+        list_font = ctk.CTkFont(family="Times", size=10)
+
         label = ctk.CTkLabel(top_frame, text="New Booking", font=title_font)
         label.grid(row=0, column=0, columnspan=3, sticky='nw', pady=0,padx=0)
 
@@ -556,99 +812,229 @@ class NewBooking(ctk.CTkFrame):
 
         booking_scrollbar = ctk.CTkScrollableFrame(
             scroll_frame,
-            width=530,
+            width=570,
             height=200,
             label_text="Booking Form",
-            #label_fg_color="blue",
-            #label_text_color="yellow",
+
             label_font=heading_font,
             label_anchor = "center", # "w",  # n, ne, e, se, s, sw, w, nw, center
             border_width=3,
             border_color="black",
-            #fg_color="red",
+
             scrollbar_fg_color="light gray",
             scrollbar_button_color="gray",
             scrollbar_button_hover_color = "black",
             corner_radius = 10,)
-        booking_scrollbar.grid(row = 0, column = 0)
-
+        booking_scrollbar.grid(row = 0, column = 0, columnspan=2)
+        
+        global fname_var
         fname_label = ctk.CTkLabel(booking_scrollbar, text='First Name')
         fname_label.grid(row=0, column=0, sticky='e', padx=10, pady=5)
-        fname_entry = ctk.CTkEntry(booking_scrollbar)
+        fname_entry = ctk.CTkEntry(booking_scrollbar, placeholder_text='First Name')
         fname_entry.grid(row=0, column=1, padx=5, pady=5)
+        fname_var = fname_entry
+        # fname_entry.configure(state='readonly')
 
+        global lname_var
         lname_label = ctk.CTkLabel(booking_scrollbar, text='Last Name')
         lname_label.grid(row=0, column=2, sticky='e', padx=10, pady=5)
-        lname_entry = ctk.CTkEntry(booking_scrollbar)
+        lname_entry = ctk.CTkEntry(booking_scrollbar, placeholder_text='Last Name')
         lname_entry.grid(row=0, column=3, padx=5, pady=5)
+        lname_var = lname_entry
 
+        global phone_var
         phone_num_label = ctk.CTkLabel(booking_scrollbar, text='Phone Number')
         phone_num_label.grid(row=1, column=0, sticky='e', padx=10, pady=5)
-        phone_num_entry = ctk.CTkEntry(booking_scrollbar)
+        phone_num_entry = ctk.CTkEntry(booking_scrollbar, placeholder_text='1-XXX-XXX-XXXX')
         phone_num_entry.grid(row=1, column=1, padx=5, pady=5)
+        phone_var = phone_num_entry
 
+        global email_var
         email_label = ctk.CTkLabel(booking_scrollbar, text='Email')
         email_label.grid(row=1, column=2, sticky='e', padx=10, pady=5)
-        email_entry = ctk.CTkEntry(booking_scrollbar)
+        email_entry = ctk.CTkEntry(booking_scrollbar, placeholder_text="Email Address")
         email_entry.grid(row=1, column=3, padx=5, pady=5)
+        email_var = email_entry
 
+        global check_in_var
         start_cal_label = ctk.CTkLabel(booking_scrollbar, text='Check-In')
         start_cal_label.grid(row=2, column=0, sticky='e', padx=10, pady=5)
-        start_cal = DateEntry(booking_scrollbar, selectmode='day', width=25, font=body_font)
+        start_cal = DateEntry(booking_scrollbar, selectmode='day', date_pattern='yyyy/mm/dd', width=25, font=body_font)
         start_cal.grid(row=2,column=1, padx=5, pady=5)
+        check_in_var = start_cal
 
+        global check_out_var
         end_cal_label = ctk.CTkLabel(booking_scrollbar, text='Check-Out')
         end_cal_label.grid(row=2,column=2, padx=5, pady=5)
-        end_cal = DateEntry(booking_scrollbar, selectmode='day', width=25, font=body_font)
+        end_cal = DateEntry(booking_scrollbar, selectmode='day', date_pattern='yyyy/mm/dd', width=25, font=body_font)
         end_cal.grid(row=2,column=3, padx=5, pady=5)
+        check_out_var = end_cal
 
-        floor_label = ctk.CTkLabel(booking_scrollbar, text='Floor')
-        floor_label.grid(row=3, column=0, sticky='e', padx=10, pady=5)
-        floor_cmbbox = ctk.CTkComboBox(
+        # global floor_no_var
+        # floor_label = ctk.CTkLabel(booking_scrollbar, text='Floor')
+        # floor_label.grid(row=3, column=0, sticky='e', padx=10, pady=5)
+        # floor_cmbbox = ctk.CTkComboBox(
+        #     booking_scrollbar,
+        #     state='readonly', 
+        #     values=['1st Floor', '2nd Floor', '3rd Floor', '4th Floor - Penthouse'])
+        # floor_cmbbox.set('1st Floor')
+        # floor_cmbbox.grid(row=3, column=1, padx=5, pady=5)
+        # floor_no_var = floor_cmbbox
+
+        # global balconey_var
+        # balconey_label = ctk.CTkLabel(booking_scrollbar, text='Balconey')
+        # balconey_label.grid(row=3, column=2, sticky='e', padx=10, pady=5)
+        # balconey_cmbbox = ctk.CTkComboBox(
+        #     booking_scrollbar,
+        #     state='readonly', 
+        #     values=['Yes', 'No',])
+        # balconey_cmbbox.set('No')
+        # balconey_cmbbox.grid(row=3, column=3, padx=5, pady=5)
+        # balconey_var = balconey_cmbbox
+
+        # global tub_var
+        # tub_label = ctk.CTkLabel(booking_scrollbar, text='Tub Option')
+        # tub_label.grid(row=4, column=0, sticky='e', padx=10, pady=5)
+        # tub_cmbbox = ctk.CTkComboBox(
+        #     booking_scrollbar,
+        #     state='readonly', 
+        #     values=['Spa Tub', 'Jacuzzi Tub', 'No Preference',])
+        # tub_cmbbox.set('No Preference')
+        # tub_cmbbox.grid(row=4, column=1, padx=5, pady=5)
+        # tub_var = tub_cmbbox
+
+        # global minibar_var
+        # minibar_label = ctk.CTkLabel(booking_scrollbar, text='Minibar')
+        # minibar_label.grid(row=4, column=2, sticky='e', padx=10, pady=5)
+        # minibar_cmbbox = ctk.CTkComboBox(
+        #     booking_scrollbar,
+        #     state='readonly', 
+        #     values=['Yes', 'No',])
+        # minibar_cmbbox.set('No')
+        # minibar_cmbbox.grid(row=4, column=3, padx=5, pady=5)
+        # minibar_var = minibar_cmbbox
+
+        def room_cmbx_update(room_options):
+            room_cmbx.configure(values=room_options)
+            # room_cmbx.configure(values=[room_options])
+            # room_cmbx.set(values)
+
+        def add_label(list_item):
+            global label
+            label=ctk.CTkLabel(availability_box, text=list_item, font=list_font)
+            label.grid()
+        
+        def available_rooms():
+
+            uin = check_in_var.get_date()
+            uout = check_out_var.get_date()
+
+            checkin = uin.strftime("%Y-%m-%d")
+            checkout = uout.strftime("%Y-%m-%d")
+
+            formatstring = "- AVAILABLE: Floor #: {0} | Room #: {1} | Split Room: {2} | Bed Amount: {3} | Balconey: {4} | Tub Style: {5} | Minibar: {6}"
+            sql = """
+                SELECT 
+                r.floor_no, r.room_no, r.split_room, r.bed_no, r.balconey, r.tub_style, r.minibar,
+                b.check_in, b.check_out 
+                FROM hwbhotels.room r
+                LEFT JOIN hwbhotels.booking b
+                ON r.room_no = b.room_no
+                WHERE b.check_in NOT BETWEEN CONVERT(%s , DATE) and CONVERT(%s , DATE)
+                AND b.check_out NOT BETWEEN CONVERT(%s , DATE) and CONVERT(%s , DATE)
+                OR b.check_in IS NULL AND b.check_out IS NULL    
+                """
+
+            cursor.execute(sql, [checkin, checkout, checkin, checkout])
+            availability = cursor.fetchall()
+
+            listing_msg = f"Listing the available units between {checkin} ~ {checkout}..."
+            print(listing_msg)
+            availability_results_label.configure(text=listing_msg)
+
+            available_options = []
+            for available in availability:
+                option = formatstring.format(*available)
+                available_options.append(option)
+                add_label(option)
+                print(option)
+            
+            formatstring2 = "Room #: {0} | Bed Amount: {1}"
+            sql = """
+                SELECT r.room_no, r.bed_no 
+                FROM hwbhotels.room r
+                LEFT JOIN hwbhotels.booking b
+                ON r.room_no = b.room_no
+                WHERE b.check_in NOT BETWEEN CONVERT(%s , DATE) and CONVERT(%s , DATE)
+                AND b.check_out NOT BETWEEN CONVERT(%s , DATE) and CONVERT(%s , DATE)
+                OR b.check_in IS NULL AND b.check_out IS NULL    
+                """
+            room_options = []
+            cursor.execute(sql, [checkin, checkout, checkin, checkout])
+            room_list = cursor.fetchall()
+            for room in room_list:
+                room = formatstring2.format(*room)
+                room_options.append(room)
+                # room_cmbx_update(room)
+                # add_label(option)
+                # print(option)
+            room_cmbx_update(room_options)
+            print("\n*------------------------------------*\n")
+            
+        
+        check_availability_btn = ctk.CTkButton(booking_scrollbar, text='Check room availability', command=available_rooms)
+        check_availability_btn.grid(row=5, column=0, columnspan=4, padx=5, pady=10)
+
+        availability_box = ctk.CTkScrollableFrame(
+            booking_scrollbar,
+            width=380,
+            height=30,
+            fg_color="white",
+
+            label_text='Available Rooms',
+            label_font=body_font,
+            label_anchor="center",
+
+            border_width=2,
+            border_color="black",
+
+            scrollbar_fg_color="light gray",
+            scrollbar_button_color="gray",
+            scrollbar_button_hover_color = "black",
+            corner_radius = 10)
+        availability_box.grid(row=6, rowspan=1,column=0, columnspan=4, padx=5, pady=10)
+        availability_box._scrollbar.configure(height=60)
+
+        availability_results_label = ctk.CTkLabel(availability_box, text='', font=body_font)
+        availability_results_label.grid(row=0, column=0, columnspan=3)
+
+        # rooms_list_label = ctk.CTkLabel(availability_box, text='', font=list_font)
+        # rooms_list_label.grid(row=1, column=0, columnspan=3)
+
+        global room_no_var
+        room_label = ctk.CTkLabel(booking_scrollbar, text='Select Room')
+        room_label.grid(row=7, column=0, sticky='e', padx=10, pady=5)
+        room_cmbx = ctk.CTkComboBox(
             booking_scrollbar,
             state='readonly', 
-            values=['1st Floor', '2nd Floor', '3rd Floor', '4th Floor - Penthouse'])
-        floor_cmbbox.set('1st Floor')
-        floor_cmbbox.grid(row=3, column=1, padx=5, pady=5)
+            values=['',])
+        room_cmbx.set('None selected')
+        room_cmbx.grid(row=7, column=1, padx=5, pady=5)
+        room_no_var = room_cmbx
 
-        balconey_label = ctk.CTkLabel(booking_scrollbar, text='Balconey')
-        balconey_label.grid(row=3, column=2, sticky='e', padx=10, pady=5)
-        balconey_cmbbox = ctk.CTkComboBox(
-            booking_scrollbar,
-            state='readonly', 
-            values=['Yes', 'No',])
-        balconey_cmbbox.set('No')
-        balconey_cmbbox.grid(row=3, column=3, padx=5, pady=5)
-
-        tub_label = ctk.CTkLabel(booking_scrollbar, text='Tub Option')
-        tub_label.grid(row=4, column=0, sticky='e', padx=10, pady=5)
-        tub_cmbbox = ctk.CTkComboBox(
-            booking_scrollbar,
-            state='readonly', 
-            values=['Spa Tub', 'Jacuzzi Tub', 'No Preference',])
-        tub_cmbbox.set('No Preference')
-        tub_cmbbox.grid(row=4, column=1, padx=5, pady=5)
-
-        minibar_label = ctk.CTkLabel(booking_scrollbar, text='Minibar')
-        minibar_label.grid(row=4, column=2, sticky='e', padx=10, pady=5)
+        global minibar_var
+        minibar_label = ctk.CTkLabel(booking_scrollbar, text='Minibar Option')
+        minibar_label.grid(row=7, column=2, sticky='e', padx=10, pady=5)
         minibar_cmbbox = ctk.CTkComboBox(
             booking_scrollbar,
             state='readonly', 
             values=['Yes', 'No',])
         minibar_cmbbox.set('No')
-        minibar_cmbbox.grid(row=4, column=3, padx=5, pady=5)
-        
-        room_options_label = ctk.CTkLabel(booking_scrollbar, text="Available Rooms",)
-        room_options_label.grid(row=5, column=0, sticky='e', padx=5, pady=5)
-        room_options_cmbbox = ctk.CTkComboBox(
-            booking_scrollbar,
-            state='readonly', 
-            values=[''])
-        room_options_cmbbox.set('No')
-        room_options_cmbbox.grid(row=5, column=1, padx=5, pady=5)
+        minibar_cmbbox.grid(row=7, column=3, padx=5, pady=5)
+        minibar_var = minibar_cmbbox
 
-        confirmation_btn = ctk.CTkButton(booking_scrollbar, text='Confirm Booking')
-        confirmation_btn.grid(row=6, column=0, columnspan=4, padx=5, pady=10)
+        confirmation_btn = ctk.CTkButton(booking_scrollbar, text='Confirm Booking', command=new_booking)
+        confirmation_btn.grid(row=8, column=0, columnspan=4, padx=5, pady=10)
 
 
     ## Menubar
@@ -658,7 +1044,7 @@ class NewBooking(ctk.CTkFrame):
         ## Filemenu
         filemenu = Menu(menubar, tearoff=0, relief='raised', activebackground="#026AA9")
         menubar.add_cascade(label="Options", menu=filemenu)        
-        filemenu.add_command(label="Home Page", command=lambda: parent.show_frame(parent.HomePage))
+        filemenu.add_command(label="Home Page", command=lambda: parent.show_frame(parent.LoggedIn_HP))
         filemenu.add_command(label="Account Profile", command=lambda: parent.show_frame(parent.AccountProfile))       
         filemenu.add_separator()
         filemenu.add_command(label="Exit", command=parent.quit)  
@@ -693,14 +1079,18 @@ class AccountProfile(ctk.CTkFrame):
         bottom_frame = ctk.CTkFrame(self)
         bottom_frame.grid(row=1, column=0, padx=0, pady=0)
 
+        title_font = ctk.CTkFont(family="Times", size=30)
+        heading_font = ctk.CTkFont(family="Times", size=20)
+        body_font = ctk.CTkFont(family="Times", size=15)
+
 
         ## Frame Elements
         label = tk.Label(self, text="Account Profile", font=('Times', '20'))
-        label.pack(pady=0,padx=0)
+        label.grid(pady=0,padx=0)
         
         message = "Welcome back " + userName
         self.welcome = tk.Label(self,text=message)
-        self.welcome.pack(anchor=tk.N)
+        self.welcome.grid()
 
         
     ## Menubar
@@ -710,7 +1100,7 @@ class AccountProfile(ctk.CTkFrame):
         ## Filemenu
         filemenu = Menu(menubar, tearoff=0, relief='raised', activebackground="#026AA9")
         menubar.add_cascade(label="Options", menu=filemenu)        
-        filemenu.add_command(label="Home Page", command=lambda: parent.show_frame(parent.HomePage))    
+        filemenu.add_command(label="Home Page", command=lambda: parent.show_frame(parent.LoggedIn_HP))    
         filemenu.add_command(label="New Booking", command=lambda: parent.show_frame(parent.NewBooking))
         filemenu.add_separator()
         filemenu.add_command(label="Exit", command=parent.quit)  
@@ -726,5 +1116,8 @@ class AccountProfile(ctk.CTkFrame):
 
 
 #-- MAIN -- App creates BookingApp() --------------------------------------------------------------------------------------------------------------
+return_username(username_var, fname_var)
+LoggedInUser()
 app = BookingApp()
 app.mainloop()
+fname_var = LoggedInUser.fname
